@@ -1,4 +1,6 @@
+'use strict';
 
+require('./src/format/storage');
 
 const AbstDeviceModel = require('./src/AbstDeviceModel');
 

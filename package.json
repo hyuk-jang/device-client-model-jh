@@ -1,6 +1,6 @@
 {
   "name": "device-client-model-jh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "directories": {
@@ -20,5 +20,10 @@
     "eslint": "^4.15.0",
     "jsdoc": "^3.5.5",
     "mocha": "^4.1.0"
+  },
+  "dependencies": {
+    "base-model-jh": "^1.0.7",
+    "base-util-jh": "^1.0.23",
+    "underscore": "^1.8.3"
   }
 }

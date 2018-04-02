@@ -3,9 +3,6 @@
 const _ = require('underscore');
 const BU = require('base-util-jh').baseUtil;
 
-
-const AbstDataStorage = require('./AbstDataStorage');
-
 require('../format/storage');
 
 // /**
@@ -15,12 +12,11 @@ require('../format/storage');
 //  */
 
 let instance;
-class DataStorage extends AbstDataStorage {
+class DataStorage{
   /**
    * @param {Array.<refinedDeviceDataConfig>} refinedDeviceDataConfigList 
    */
   constructor(refinedDeviceDataConfigList) {
-    super();
     if (instance) {
       return instance;
     } else {

@@ -1,28 +1,26 @@
 'use strict';
 
-const EventEmitter = require('events');
-
 const DataStorage = require('./device-data-storage/DataStorage');
 
 require('./format/storage');
 
-class AbstDeviceModel extends EventEmitter {
+let dataStorage = {};
+class AbstDeviceModel{
   /**
    * @param {Array.<refinedDeviceDataConfig>} refinedDeviceDataConfigList 
    */
   constructor(refinedDeviceDataConfigList) {
-    super();
 
     /** @private */
-    this.dataStorage = new DataStorage(refinedDeviceDataConfigList);
+    dataStorage = new DataStorage(refinedDeviceDataConfigList);
   }
 
   /**
    * DB에 저장할 Connector를 생성하기 위한 정보
    * @param {dbInfo} dbInfo 
    */
-  setDbConnector(){
-    return this.dataStorage.setDbConnector(arguments);
+  setDbConnector(dbInfo){
+    return dataStorage.setDbConnector(dbInfo);
   }
 
 
@@ -33,8 +31,8 @@ class AbstDeviceModel extends EventEmitter {
    * @return {dataStorageContainer}
    * 
    */
-  setDevice() {
-    return this.dataStorage.setDevice(arguments);
+  setDevice(deviceConfigInfo, setDeviceKeyInfo) {
+    return dataStorage.setDevice(deviceConfigInfo, setDeviceKeyInfo);
   }
 
   /**
@@ -43,8 +41,8 @@ class AbstDeviceModel extends EventEmitter {
    * @param {string} deviceCategory 장치 Category 'inverter', 'connector'
    * @return {dataStorageContainer}
    */
-  onDeviceOperationInfo() {
-    return this.dataStorage.onDeviceOperationInfo(arguments);
+  onDeviceOperationInfo(deviceOperationInfo, deviceCategory) {
+    return dataStorage.onDeviceOperationInfo(deviceOperationInfo, deviceCategory);
   }
 
   /**
@@ -53,8 +51,8 @@ class AbstDeviceModel extends EventEmitter {
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    * @return {dataStorageContainer}
    */
-  async refineTheDataToSaveDB() {
-    return await this.dataStorage.refineTheDataToSaveDB(arguments);
+  async refineTheDataToSaveDB(deviceCategory, processingDate) {
+    return await dataStorage.refineTheDataToSaveDB(deviceCategory, processingDate);
   }
 
   /**
@@ -62,8 +60,8 @@ class AbstDeviceModel extends EventEmitter {
    * @param {string} deviceCategory 카테고리 명
    * @return {dataStorageContainer}
    */
-  async saveDataToDB() {
-    return await this.dataStorage.saveDataToDB(arguments);
+  async saveDataToDB(deviceCategory) {
+    return await dataStorage.saveDataToDB(deviceCategory);
   }
 
 
