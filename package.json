@@ -22,7 +22,7 @@
     "mocha": "^4.1.0"
   },
   "dependencies": {
-    "base-model-jh": "^1.0.7",
+    "base-model-jh": "^1.0.9",
     "base-util-jh": "^1.0.23",
     "underscore": "^1.8.3"
   }
