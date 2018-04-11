@@ -569,7 +569,12 @@ class DataStorage{
       SELECT o.*
         FROM ${tableName} o                    
           LEFT JOIN ${tableName} b             
-              ON o.${foreignKey} = b.${foreignKey} AND o.${changeColumnKeyInfo.codeKey} = b.${changeColumnKeyInfo.codeKey} AND o.${primaryKey} < b.${primaryKey}
+              ON o.${changeColumnKeyInfo.codeKey} = b.${changeColumnKeyInfo.codeKey} AND o.${primaryKey} < b.${primaryKey}
+              `;
+    if(foreignKey){
+      sql += ` AND  o.${foreignKey} = b.${foreignKey} `;
+    }
+    sql += `
         WHERE b.${primaryKey} is NULL AND o.${changeColumnKeyInfo.fixDateKey} is NULL
         ORDER BY o.${primaryKey} ASC
     `;
