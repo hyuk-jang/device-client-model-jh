@@ -1,6 +1,6 @@
 'use strict';
 
-const _ = require('underscore');
+const _ = require('lodash');
 const BU = require('base-util-jh').baseUtil;
 
 require('../format/storage');
@@ -49,6 +49,7 @@ class DataStorage{
    * @param {setDeviceKeyInfo} setDeviceKeyInfo 컨트롤러 ID 및 Category를 쓸 Key Name 정보 
    */
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
+    BU.CLIS(deviceConfigInfo, setDeviceKeyInfo);
     if (Array.isArray(deviceConfigInfo)) {
       deviceConfigInfo.forEach(currentItem => {
         return this.setDevice(currentItem, setDeviceKeyInfo);
@@ -68,7 +69,7 @@ class DataStorage{
       /** @type {dataStorageContainer} */
       dataStorageContainer = {
         deviceCategory,
-        refinedDeviceDataConfig: _.findWhere(this.refinedDeviceDataConfigList, {
+        refinedDeviceDataConfig: _.find(this.refinedDeviceDataConfigList, {
           deviceCategory
         }),
         insertTroubleList: [],
@@ -130,34 +131,33 @@ class DataStorage{
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    */
   async refineTheDataToSaveDB(deviceCategory, processingDate) {
-    // BU.CLI('applyToDatabase', deviceType);
+    BU.CLI('applyToDatabase', deviceCategory);
     let dataStorageContainer = this.getDataStorageContainer(deviceCategory);
-    // BU.CLI(dataStorageContainer);
+    // BU.CLIN(dataStorageContainer);
 
     if (_.isEmpty(dataStorageContainer)) {
       throw new Error('해당 Device Category는 존재하지 않습니다.');
     }
     // 처리 시각 저장
     dataStorageContainer.processingDate = processingDate instanceof Date ? processingDate : new Date();
-
     let {
       refinedDeviceDataConfig,
       storage,
     } = dataStorageContainer;
-
+    
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
     const hasApplyToDatabaseForError = _.isObject(refinedDeviceDataConfig.troubleTableInfo) && refinedDeviceDataConfig.troubleTableInfo.tableName.length ? true : false;
-
+    
     let strMeasureDate = BU.convertDateToText(dataStorageContainer.processingDate);
     let dbTroublePacketList = [];
-
+    
     // TODO Trouble을 DB상에 처리할 것이라면
     if (hasApplyToDatabaseForError) {
       dbTroublePacketList = await this.getTroubleList(dataStorageContainer);
       // BU.CLI(dbTroublePacketList);
     }
     // BU.CLI(dbTroublePacketList);
-
+    
     // 카테고리에 저장되어 있는 저장소의 모든 데이터 점검
     storage.forEach(dataStorage => {
       // 시스템 오류나 장치 이상이 발견된다면 오류발생 처리
@@ -189,12 +189,16 @@ class DataStorage{
     }
 
     // insertDataList에 날짜 추가
-    dataStorageContainer.insertDataList = _.map(dataStorageContainer.insertDataList, insertData => {
-      return Object.assign({
-        [refinedDeviceDataConfig.dataTableInfo.insertDateKey]: strMeasureDate
-      }, insertData);
+    dataStorageContainer.insertDataList = [];
+    _.forEach(dataStorageContainer.insertDataList, insertData => {
+      dataStorageContainer.insertDataList.push(
+        Object.assign({
+          [refinedDeviceDataConfig.dataTableInfo.insertDateKey]: strMeasureDate
+        }, insertData)
+      );
     });
-    return dataStorageContainer;
+
+    BU.CLIN(dataStorageContainer, 4);
   }
 
   /**
@@ -253,7 +257,7 @@ class DataStorage{
    */
   getDataStorageContainer(deviceCategory) {
     // BU.CLI(this.deviceDataStorageList);
-    return _.findWhere(this.dataStorageContainerList, {
+    return _.find(this.dataStorageContainerList, {
       deviceCategory
     });
   }
@@ -265,17 +269,17 @@ class DataStorage{
    * @return {dataStorage}
    */
   getDataStorage(deviceId, deviceCategory) {
-    // BU.CLI(deviceId, deviceCategory);
+    BU.CLI(deviceId, deviceCategory);
     try {
       if (deviceCategory.length) {
         let storageData = this.getDataStorageContainer(deviceCategory);
-        return storageData ? _.findWhere(storageData.storage, {
+        return storageData ? _.find(storageData.storage, {
           id: deviceId
         }) : {};
       } else {
         let foundIt = {};
         _.find(this.dataStorageContainerList, deviceDataStorage => {
-          let foundStorage = _.findWhere(deviceDataStorage.storage, {
+          let foundStorage = _.find(deviceDataStorage.storage, {
             id: deviceId
           });
           if (_.isEmpty(foundStorage)) {
@@ -317,20 +321,14 @@ class DataStorage{
       // 데이터는 Json 형태로 저장된다고 가정하고 얕은 복사 진행 
       // 데이터가 Object[] 형태로 들어올 경우
       if(Array.isArray(deviceOperationInfo.data)){
-        dataStorage.data = _.map(deviceOperationInfo.data, deviceData => {
-          return Object.assign({}, deviceData);
-        });
+        dataStorage.data = _.cloneDeep(deviceOperationInfo.data);
       } else {
-        dataStorage.data = Object.assign({}, deviceOperationInfo.data);
+        dataStorage.data = _.clone(deviceOperationInfo.data);
       }
 
-      dataStorage.systemErrorList = _.map(deviceOperationInfo.systemErrorList, error => {
-        return Object.assign({}, error);
-      });
+      dataStorage.systemErrorList = _.cloneDeep(deviceOperationInfo.systemErrorList);
 
-      dataStorage.troubleList = _.map(deviceOperationInfo.troubleList, error => {
-        return Object.assign({}, error);
-      });
+      dataStorage.troubleList = _.cloneDeep(deviceOperationInfo.troubleList);
 
       dataStorage.convertedDataList = [];
 
@@ -382,7 +380,7 @@ class DataStorage{
       // BU.CLI(systemError);
       let hasExitError = false;
       // // 기존 시스템 에러가 존재한다면 처리할 필요가 없으므로 dbTroubleList에서 삭제
-      dbTroublePacketList = _.reject(dbTroublePacketList, dbTrouble => {
+      _.remove(dbTroublePacketList, dbTrouble => {
         // TODO 발생한 날짜를 기입하도록 변경 필요
         // code 가 같다면 설정 변수 값이 같은지 확인하여 모두 동일하다면 해당 에러 삭제
         if (dbTrouble.code === deviceError.code) {
