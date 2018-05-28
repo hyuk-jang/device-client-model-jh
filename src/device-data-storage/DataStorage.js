@@ -97,7 +97,7 @@ class DataStorage{
       dataStorageContainer.storage.push(addDataStorageObj);
       // BU.CLIN(this.deviceDataStorageList);
     } else {
-      throw new Error('해당 장치는 이미 등록되어 있습니다.');
+      throw new Error('The device is already registered.');
     }
   }
 
@@ -111,7 +111,7 @@ class DataStorage{
     let dataStorageContainer = this.getDataStorageContainer(deviceCategory);
 
     if (_.isEmpty(dataStorageContainer)) {
-      throw Error(`deviceType [${deviceCategory}]은 없습니다.`);
+      throw Error(`There is no such device type.[${deviceCategory}] `);
     }
     // 
     if (typeof deviceOperationInfo === 'object' && Array.isArray(deviceOperationInfo)) {
@@ -136,7 +136,7 @@ class DataStorage{
     // BU.CLIN(dataStorageContainer);
 
     if (_.isEmpty(dataStorageContainer)) {
-      throw new Error('해당 Device Category는 존재하지 않습니다.');
+      throw new Error(`There is no such device category. [${deviceCategory}]`);
     }
     // 처리 시각 저장
     dataStorageContainer.processingDate = processingDate instanceof Date ? processingDate : new Date();
@@ -204,12 +204,12 @@ class DataStorage{
     // Category에 맞는 StorageData를 가져옴
     const dataStorageContainer = this.getDataStorageContainer(deviceCategory);
     if(_.isEmpty(dataStorageContainer)){
-      throw new Error('해당 deviceCategory는 존재하지 않습니다.' + deviceCategory);
+      throw new Error(`There is no such device category. [${deviceCategory}]`);
     }
 
     // DB 접속 정보가 없다면 에러
     if(_.isEmpty(this.BM)){
-      throw new Error('DB 접속 정보가 존재하지 않습니다.' + deviceCategory);
+      throw new Error(`There is no DB connection information. [${deviceCategory}]`);
     }
 
 
@@ -304,7 +304,7 @@ class DataStorage{
       let id = deviceOperationInfo.id;
       let dataStorage = this.getDataStorage(id, deviceCategory);
       if (_.isEmpty(dataStorage)) {
-        throw Error(`fn(onDeviceData) device ID: ${id}가 이상합니다.`);
+        throw Error(`fn(onDeviceData) The device is of the wrong id. [${id}]`);
       }
       // 주소 참조 데이터의 고리를 끊고 사본을 저장
       // 상수
@@ -556,7 +556,7 @@ class DataStorage{
   getTroubleList(dataStorageContainer) {
     // DB 접속 정보가 없다면 에러
     if(_.isEmpty(this.BM)){
-      throw new Error('DB 접속 정보가 존재하지 않습니다.');
+      throw new Error('DB information does not exist.');
     }
 
     const troubleTableInfo = dataStorageContainer.refinedDeviceDataConfig.troubleTableInfo;

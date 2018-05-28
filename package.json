@@ -22,8 +22,8 @@
     "mocha": "^4.1.0"
   },
   "dependencies": {
-    "base-model-jh": "^1.0.9",
-    "base-util-jh": "^1.1.5",
+    "base-model-jh": "^1.0.10",
+    "base-util-jh": "^1.1.6",
     "lodash": "^4.17.10",
     "underscore": "^1.8.3"
   }
