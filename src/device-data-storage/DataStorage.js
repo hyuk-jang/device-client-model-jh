@@ -49,7 +49,7 @@ class DataStorage{
    * @param {setDeviceKeyInfo} setDeviceKeyInfo 컨트롤러 ID 및 Category를 쓸 Key Name 정보 
    */
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
-    BU.CLIS(deviceConfigInfo, setDeviceKeyInfo);
+    // BU.CLIS(deviceConfigInfo, setDeviceKeyInfo);
     if (Array.isArray(deviceConfigInfo)) {
       deviceConfigInfo.forEach(currentItem => {
         return this.setDevice(currentItem, setDeviceKeyInfo);
@@ -131,7 +131,7 @@ class DataStorage{
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    */
   async refineTheDataToSaveDB(deviceCategory, processingDate) {
-    BU.CLI('applyToDatabase', deviceCategory);
+    // BU.CLI('applyToDatabase', deviceCategory);
     let dataStorageContainer = this.getDataStorageContainer(deviceCategory);
     // BU.CLIN(dataStorageContainer);
 
@@ -161,7 +161,8 @@ class DataStorage{
     // 카테고리에 저장되어 있는 저장소의 모든 데이터 점검
     storage.forEach(dataStorage => {
       // 시스템 오류나 장치 이상이 발견된다면 오류발생 처리
-      let hasError = dataStorage.systemErrorList.length || dataStorage.troubleList.length ? true : false;
+      let hasError = dataStorage.systemErrorList.length ? true : false;
+      // let hasError = dataStorage.systemErrorList.length || dataStorage.troubleList.length ? true : false;
       // 시스템 에러가 있다면 
       if (hasApplyToDatabaseForError) {
         let resultProcessError = this.processDeviceErrorList(dataStorage, dataStorageContainer, dbTroublePacketList);
@@ -172,6 +173,7 @@ class DataStorage{
         dbTroublePacketList = resultProcessError.dbTroublePacketList;
       }
 
+      // BU.CLI(hasError);
       // Trouble 이나 System Error가 발생한 계측 데이터는 사용하지 않음.
       if (!hasError) {
         dataStorage.convertedDataList = this.processDeviceDataList(dataStorage, dataStorageContainer);
@@ -189,16 +191,9 @@ class DataStorage{
     }
 
     // insertDataList에 날짜 추가
-    dataStorageContainer.insertDataList = [];
     _.forEach(dataStorageContainer.insertDataList, insertData => {
-      dataStorageContainer.insertDataList.push(
-        Object.assign({
-          [refinedDeviceDataConfig.dataTableInfo.insertDateKey]: strMeasureDate
-        }, insertData)
-      );
+      insertData[refinedDeviceDataConfig.dataTableInfo.insertDateKey] = strMeasureDate;
     });
-
-    BU.CLIN(dataStorageContainer, 4);
   }
 
   /**
@@ -269,7 +264,7 @@ class DataStorage{
    * @return {dataStorage}
    */
   getDataStorage(deviceId, deviceCategory) {
-    BU.CLI(deviceId, deviceCategory);
+    // BU.CLI(deviceId, deviceCategory);
     try {
       if (deviceCategory.length) {
         let storageData = this.getDataStorageContainer(deviceCategory);
@@ -368,7 +363,6 @@ class DataStorage{
       deviceErrorList = dataStorage.troubleList;
     }
 
-
     // 저장할때 추가하는 키
     let addObjectParam = {};
     troubleTableInfo.addParamList.forEach(currentItem => {
@@ -377,19 +371,22 @@ class DataStorage{
 
     // 기존 DB에 저장되어 있는 에러라면 제거
     deviceErrorList.forEach(deviceError => {
-      // BU.CLI(systemError);
       let hasExitError = false;
       // // 기존 시스템 에러가 존재한다면 처리할 필요가 없으므로 dbTroubleList에서 삭제
       _.remove(dbTroublePacketList, dbTrouble => {
-        // TODO 발생한 날짜를 기입하도록 변경 필요
         // code 가 같다면 설정 변수 값이 같은지 확인하여 모두 동일하다면 해당 에러 삭제
         if (dbTrouble.code === deviceError.code) {
           // TroubleTableInfo의 AddParam에 명시된 값과 dataStorage의 config Key 값들이 전부 일치 한다면 동일 에러라고 판단
-          return hasExitError = _.every(troubleTableInfo.addParamList, troubleParamInfo => {
+          let everyMatching = _.every(troubleTableInfo.addParamList, troubleParamInfo => {
             return dbTrouble[troubleParamInfo.toKey] === dataStorage.config[troubleParamInfo.fromKey];
           });
+          if(everyMatching){
+            return hasExitError = true;
+          } else {
+            return false;
+          }
         } else { // new Error
-          return hasExitError = false;
+          return false;
         }
       });
 
@@ -414,7 +411,7 @@ class DataStorage{
     // Trouble 처리를 하지 않으므로
     if (isSystemError) {
       // ParamList에 적시된 config 값이 동일한 Db Error는 제거
-      dbTroublePacketList = _.reject(dbTroublePacketList, dbTroubleDataPacket => {
+      _.remove(dbTroublePacketList, dbTroubleDataPacket => {
         let hasEqualDevice = _.every(troubleTableInfo.addParamList, currentItem => {
           return dbTroubleDataPacket[currentItem.toKey] === dataStorage[currentItem.fromKey];
         });
@@ -447,6 +444,7 @@ class DataStorage{
       config
     } = dataStorage;
 
+    // BU.CLI(data);
     const refinedDeviceDataConfig = dataStorageContainer.refinedDeviceDataConfig;
     const matchingList = refinedDeviceDataConfig.dataTableInfo.matchingList;
     const addParamList = refinedDeviceDataConfig.dataTableInfo.addParamList;
@@ -493,6 +491,7 @@ class DataStorage{
    * @return {number} 계산 결과
    */
   calculateMatchingData(deviceData, refinedMatchingInfo) {
+    // BU.CLIS(deviceData, refinedMatchingInfo);
     // BU.CLI('calculateMatchingData', matchingBindingObj, deviceData);
     let resultCalculate = 0;
     try {
@@ -542,6 +541,7 @@ class DataStorage{
       throw error;
     }
 
+    // BU.CLI(resultCalculate);
     return resultCalculate;
   }
 
