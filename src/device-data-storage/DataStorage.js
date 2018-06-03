@@ -17,6 +17,7 @@ class DataStorage{
    * @param {Array.<refinedDeviceDataConfig>} refinedDeviceDataConfigList 
    */
   constructor(refinedDeviceDataConfigList) {
+    // BU.CLIN(refinedDeviceDataConfigList);
     if (instance) {
       return instance;
     } else {
@@ -131,7 +132,7 @@ class DataStorage{
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    */
   async refineTheDataToSaveDB(deviceCategory, processingDate) {
-    // BU.CLI('applyToDatabase', deviceCategory);
+    BU.CLI('applyToDatabase', deviceCategory);
     let dataStorageContainer = this.getDataStorageContainer(deviceCategory);
     // BU.CLIN(dataStorageContainer);
 
@@ -146,7 +147,7 @@ class DataStorage{
     } = dataStorageContainer;
     
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
-    const hasApplyToDatabaseForError = _.isObject(refinedDeviceDataConfig.troubleTableInfo) && refinedDeviceDataConfig.troubleTableInfo.tableName.length ? true : false;
+    const hasApplyToDatabaseForError = _.isObject(refinedDeviceDataConfig.troubleTableInfo) && _.get(refinedDeviceDataConfig, 'troubleTableInfo.tableName') ? true : false;
     
     let strMeasureDate = BU.convertDateToText(dataStorageContainer.processingDate);
     let dbTroublePacketList = [];
@@ -194,6 +195,7 @@ class DataStorage{
     _.forEach(dataStorageContainer.insertDataList, insertData => {
       insertData[refinedDeviceDataConfig.dataTableInfo.insertDateKey] = strMeasureDate;
     });
+    return dataStorageContainer;
   }
 
   /**
@@ -264,6 +266,8 @@ class DataStorage{
    * @return {dataStorage}
    */
   getDataStorage(deviceId, deviceCategory) {
+    // BU.CLIN(this.refinedDeviceDataConfigList);
+    // BU.CLIN(this.dataStorageContainerList);
     // BU.CLI(deviceId, deviceCategory);
     try {
       if (deviceCategory.length) {
@@ -302,6 +306,7 @@ class DataStorage{
   updateDataStorage(deviceOperationInfo, deviceCategory) {
     try {
       let id = deviceOperationInfo.id;
+      BU.CLIN(deviceCategory);
       let dataStorage = this.getDataStorage(id, deviceCategory);
       if (_.isEmpty(dataStorage)) {
         throw Error(`fn(onDeviceData) The device is of the wrong id. [${id}]`);
