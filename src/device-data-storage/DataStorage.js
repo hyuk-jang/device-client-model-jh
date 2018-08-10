@@ -143,7 +143,7 @@ class DataStorage {
     let { refinedDeviceDataConfig, storage } = dataStorageContainer;
 
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
-    const hasrefineTheDataToSaveDBForError =
+    const hasApplyToDatabaseForError =
       _.isObject(refinedDeviceDataConfig.troubleTableInfo) &&
       _.get(refinedDeviceDataConfig, "troubleTableInfo.tableName")
         ? true
