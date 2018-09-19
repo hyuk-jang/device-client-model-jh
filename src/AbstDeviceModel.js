@@ -1,9 +1,8 @@
-'use strict';
-
 const DataStorage = require('./device-data-storage/DataStorage');
 
 require('./format/storage');
 
+/** @type {DataStorage} */
 let dataStorage = {};
 class AbstDeviceModel {
   /**
@@ -12,6 +11,14 @@ class AbstDeviceModel {
   constructor(refinedDeviceDataConfigList) {
     /** @private */
     dataStorage = new DataStorage(refinedDeviceDataConfigList);
+  }
+
+  /**
+   *
+   * @param {boolean} hasSaveToDB
+   */
+  setHasSaveToDB(hasSaveToDB) {
+    dataStorage.hasSaveToDB = hasSaveToDB;
   }
 
   /**
@@ -40,10 +47,7 @@ class AbstDeviceModel {
    * @return {dataStorageContainer}
    */
   onDeviceOperationInfo(deviceOperationInfo, deviceCategory) {
-    return dataStorage.onDeviceOperationInfo(
-      deviceOperationInfo,
-      deviceCategory
-    );
+    return dataStorage.onDeviceOperationInfo(deviceOperationInfo, deviceCategory);
   }
 
   /**
@@ -54,11 +58,12 @@ class AbstDeviceModel {
    * @return {dataStorageContainer}
    */
   async refineTheDataToSaveDB(deviceCategory, processingDate, hasIgnoreError) {
-    return await dataStorage.refineTheDataToSaveDB(
+    const dataStorageContainer = await dataStorage.refineTheDataToSaveDB(
       deviceCategory,
       processingDate,
-      hasIgnoreError
+      hasIgnoreError,
     );
+    return dataStorageContainer;
   }
 
   /**
@@ -67,7 +72,8 @@ class AbstDeviceModel {
    * @return {dataStorageContainer}
    */
   async saveDataToDB(deviceCategory) {
-    return await dataStorage.saveDataToDB(deviceCategory);
+    const dataStorageContainer = await dataStorage.saveDataToDB(deviceCategory);
+    return dataStorageContainer;
   }
 }
 module.exports = AbstDeviceModel;
