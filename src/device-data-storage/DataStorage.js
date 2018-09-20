@@ -145,7 +145,7 @@ class DataStorage {
     const strMeasureDate = BU.convertDateToText(dataStorageContainer.processingDate);
     let remainDbTroublePacketList = [];
 
-    // TODO Trouble을 DB상에 처리할 것이라면
+    // TODO: Trouble을 DB상에 처리할 것이라면
     if (hasApplyToDatabaseForError) {
       remainDbTroublePacketList = await this.getTroubleList(dataStorageContainer);
       // BU.CLI(dbTroublePacketList);
@@ -156,7 +156,6 @@ class DataStorage {
     storage.forEach(dataStorage => {
       // 시스템 오류나 장치 이상이 발견된다면 오류발생 처리
       const hasError = !!dataStorage.systemErrorList.length;
-      // let hasError = dataStorage.systemErrorList.length || dataStorage.troubleList.length ? true : false;
       // 시스템 에러가 있다면
       if (hasApplyToDatabaseForError) {
         const resultProcessError = this.processDeviceErrorList(
@@ -219,6 +218,7 @@ class DataStorage {
 
     // insertDataList에 날짜 추가
     _.forEach(dataStorageContainer.insertDataList, insertData => {
+      // BU.CLIN(insertData)
       insertData[refinedDeviceDataConfig.dataTableInfo.insertDateKey] = strMeasureDate;
     });
     return dataStorageContainer;
@@ -384,10 +384,10 @@ class DataStorage {
     let deviceErrorList = [];
     let isSystemError = 0;
 
-    if (dataStorage.systemErrorList.length) {
+    if (!_.isNil(dataStorage.systemErrorList) && dataStorage.systemErrorList.length) {
       isSystemError = 1;
       deviceErrorList = dataStorage.systemErrorList;
-    } else if (dataStorage.troubleList.length) {
+    } else if (!_.isNil(dataStorage.troubleList) && dataStorage.troubleList.length) {
       deviceErrorList = dataStorage.troubleList;
     }
 
@@ -486,6 +486,10 @@ class DataStorage {
     if (_.isArray(data)) {
       const convertDataList = [];
       data.forEach(deviceData => {
+        if(!_(deviceData).values().without(null).value().length) {
+          return false;
+        }
+        
         const convertData = {};
         // 계산식 반영
         matchingList.forEach(matchingObj => {
@@ -500,8 +504,10 @@ class DataStorage {
       });
 
       return convertDataList;
-    }
-    if (_.isObject(data)) {
+    } else if (_.isObject(data)) {
+      if(!_(data).values().without(null).value().length) {
+        return [];
+      }
       const convertData = {};
 
       // 계산식 반영
@@ -514,6 +520,8 @@ class DataStorage {
       });
 
       return [convertData];
+    } else {
+      return []
     }
   }
 
