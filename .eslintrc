@@ -10,6 +10,8 @@
     "no-param-reassign": "off",
     "class-methods-use-this": "off",
     "consistent-return": "off",
-    "prettier/prettier": ["error", "fb"]
+    "prefer-arrow-callback": "off",
+    "func-names": "off",
+    "prettier/prettier": "error"
   }
 }

@@ -1,6 +1,6 @@
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
-const {BM} = require('base-model-jh');
+const { BU } = require('base-util-jh');
+const { BM } = require('base-model-jh');
 require('../format/storage');
 
 // /**
@@ -50,7 +50,7 @@ class DataStorage {
     if (Array.isArray(deviceConfigInfo)) {
       deviceConfigInfo.forEach(currentItem => this.setDevice(currentItem, setDeviceKeyInfo));
     }
-    const {deviceCategoryKey, idKey} = setDeviceKeyInfo;
+    const { deviceCategoryKey, idKey } = setDeviceKeyInfo;
 
     const deviceCategory = deviceConfigInfo[deviceCategoryKey];
 
@@ -134,7 +134,7 @@ class DataStorage {
     // 처리 시각 저장
     dataStorageContainer.processingDate =
       processingDate instanceof Date ? processingDate : new Date();
-    const {refinedDeviceDataConfig, storage} = dataStorageContainer;
+    const { refinedDeviceDataConfig, storage } = dataStorageContainer;
 
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
     const hasApplyToDatabaseForError = !!(
@@ -242,7 +242,7 @@ class DataStorage {
 
     if (this.hasSaveToDB) {
       // BU.CLI(dataStorageContainer);
-      const {dataTableInfo, troubleTableInfo} = dataStorageContainer.refinedDeviceDataConfig;
+      const { dataTableInfo, troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
 
       // 입력할 Data와 저장할 DB Table이 있을 경우
       if (dataStorageContainer.insertDataList.length && dataTableInfo.tableName) {
@@ -337,7 +337,7 @@ class DataStorage {
    */
   updateDataStorage(deviceOperationInfo, deviceCategory) {
     try {
-      const {id, config, data, measureDate, systemErrorList, troubleList} = deviceOperationInfo;
+      const { id, config, data, measureDate, systemErrorList, troubleList } = deviceOperationInfo;
       const dataStorage = this.getDataStorage(id, deviceCategory);
       if (_.isEmpty(dataStorage)) {
         throw Error(`fn(onDeviceData) The device is of the wrong id. [${id}]`);
@@ -376,7 +376,7 @@ class DataStorage {
     const updateTroubleList = [];
 
     // 에러를 저장할 DB Schema 정보
-    const {troubleTableInfo} = dataStorageContainer.refinedDeviceDataConfig;
+    const { troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
     const measureDeviceConfig = dataStorage.config;
 
     // 에러를 처리할 대상 설정
@@ -421,8 +421,8 @@ class DataStorage {
 
       // 신규 에러라면 insertList에 추가
       if (!hasExitError) {
-        const {changeColumnKeyInfo} = troubleTableInfo;
-        const {codeKey, fixDateKey, isErrorKey, msgKey, occurDateKey} = changeColumnKeyInfo;
+        const { changeColumnKeyInfo } = troubleTableInfo;
+        const { codeKey, fixDateKey, isErrorKey, msgKey, occurDateKey } = changeColumnKeyInfo;
         let addErrorObj = {
           [isErrorKey]: isSystemError,
           [codeKey]: deviceError.code,
@@ -476,20 +476,25 @@ class DataStorage {
    */
   processDeviceDataList(dataStorage, dataStorageContainer) {
     // 장치 데이터, 장치 설정 정보
-    const {data, config} = dataStorage;
+    const { data, config } = dataStorage;
 
     // BU.CLI(data);
-    const {refinedDeviceDataConfig} = dataStorageContainer;
-    const {matchingList, addParamList} = refinedDeviceDataConfig.dataTableInfo;
+    const { refinedDeviceDataConfig } = dataStorageContainer;
+    const { matchingList, addParamList } = refinedDeviceDataConfig.dataTableInfo;
 
     // 데이터가 Array.<Object> 형태일 경우
     if (_.isArray(data)) {
       const convertDataList = [];
       data.forEach(deviceData => {
-        if(!_(deviceData).values().without(null).value().length) {
+        if (
+          !_(deviceData)
+            .values()
+            .without(null)
+            .value().length
+        ) {
           return false;
         }
-        
+
         const convertData = {};
         // 계산식 반영
         matchingList.forEach(matchingObj => {
@@ -504,8 +509,14 @@ class DataStorage {
       });
 
       return convertDataList;
-    } else if (_.isObject(data)) {
-      if(!_(data).values().without(null).value().length) {
+    }
+    if (_.isObject(data)) {
+      if (
+        !_(data)
+          .values()
+          .without(null)
+          .value().length
+      ) {
         return [];
       }
       const convertData = {};
@@ -520,9 +531,8 @@ class DataStorage {
       });
 
       return [convertData];
-    } else {
-      return []
     }
+    return [];
   }
 
   /**
@@ -537,7 +547,7 @@ class DataStorage {
     // BU.CLI('calculateMatchingData', matchingBindingObj, deviceData);
     let resultCalculate = 0;
     try {
-      const {fromKey, toFixed, calculate} = refinedMatchingInfo;
+      const { fromKey, toFixed, calculate } = refinedMatchingInfo;
       const reg = /[a-zA-Z]/;
       // 계산식이 숫자일 경우는 eval 하지 않음
       if (_.isNumber(calculate)) {
@@ -596,9 +606,9 @@ class DataStorage {
       throw new Error('DB information does not exist.');
     }
 
-    const {troubleTableInfo} = dataStorageContainer.refinedDeviceDataConfig;
-    const {tableName, changeColumnKeyInfo, indexInfo} = troubleTableInfo;
-    const {foreignKey, primaryKey} = indexInfo;
+    const { troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
+    const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
+    const { foreignKey, primaryKey } = indexInfo;
 
     let sql = `
       SELECT o.*
