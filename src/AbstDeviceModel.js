@@ -1,16 +1,23 @@
+const _ = require('lodash');
+
 const DataStorage = require('./device-data-storage/DataStorage');
+const DataStorageForDBS = require('./device-data-storage/DataStorageForDBS');
 
 require('./format/storage');
 
-/** @type {DataStorage} */
+/** @type {AbstDeviceModel} */
 let dataStorage = {};
 class AbstDeviceModel {
   /**
-   * @param {Array.<refinedDeviceDataConfig>} refinedDeviceDataConfigList
+   * @param {Array.<dataStorageConfig>} dataStorageConfigList
    */
-  constructor(refinedDeviceDataConfigList) {
-    /** @private */
-    dataStorage = new DataStorage(refinedDeviceDataConfigList);
+  constructor(dataStorageConfigList) {
+    if (_.isArray(dataStorageConfigList)) {
+      /** @private */
+      dataStorage = new DataStorage(dataStorageConfigList);
+    } else {
+      dataStorage = new DataStorageForDBS();
+    }
   }
 
   /**
@@ -38,6 +45,15 @@ class AbstDeviceModel {
    */
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
     return dataStorage.setDevice(deviceConfigInfo, setDeviceKeyInfo);
+  }
+
+  /**
+   * Device Client 추가
+   * @return {dataStorageContainer}
+   *
+   */
+  setDeviceForDB() {
+    return dataStorage.setDeviceForDB();
   }
 
   /**

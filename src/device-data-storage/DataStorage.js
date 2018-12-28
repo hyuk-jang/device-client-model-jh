@@ -9,19 +9,22 @@ require('../format/storage');
 //  * @property {Array} storage
 //  */
 
+const AbstDeviceClientModel = require('./AbstDeviceClientModel');
+
 let instance;
-class DataStorage {
+class DataStorage extends AbstDeviceClientModel {
   /**
-   * @param {Array.<refinedDeviceDataConfig>} refinedDeviceDataConfigList
+   * @param {Array.<dataStorageConfig>} dataStorageConfigList
    */
-  constructor(refinedDeviceDataConfigList) {
-    // BU.CLIN(refinedDeviceDataConfigList);
+  constructor(dataStorageConfigList) {
+    super();
+    // BU.CLIN(dataStorageConfigList);
     if (instance) {
       return instance;
     }
     instance = this;
 
-    this.refinedDeviceDataConfigList = refinedDeviceDataConfigList;
+    this.dataStorageConfigList = dataStorageConfigList;
 
     /** @type {Array.<dataStorageContainer>} */
     this.dataStorageContainerList = [];
@@ -30,14 +33,6 @@ class DataStorage {
 
     /** DB에 저장할 것인지 */
     this.hasSaveToDB = true;
-  }
-
-  /**
-   * DB에 저장할 Connector를 생성하기 위한 정보
-   * @param {dbInfo} dbInfo
-   */
-  setDbConnector(dbInfo) {
-    this.BM = new BM(dbInfo);
   }
 
   /**
@@ -61,7 +56,7 @@ class DataStorage {
       /** @type {dataStorageContainer} */
       dataStorageContainer = {
         deviceCategory,
-        refinedDeviceDataConfig: _.find(this.refinedDeviceDataConfigList, {
+        dataStorageConfig: _.find(this.dataStorageConfigList, {
           deviceCategory,
         }),
         insertTroubleList: [],
@@ -134,12 +129,12 @@ class DataStorage {
     // 처리 시각 저장
     dataStorageContainer.processingDate =
       processingDate instanceof Date ? processingDate : new Date();
-    const { refinedDeviceDataConfig, storage } = dataStorageContainer;
+    const { dataStorageConfig, storage } = dataStorageContainer;
 
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
     const hasApplyToDatabaseForError = !!(
-      _.isObject(refinedDeviceDataConfig.troubleTableInfo) &&
-      _.get(refinedDeviceDataConfig, 'troubleTableInfo.tableName')
+      _.isObject(dataStorageConfig.troubleTableInfo) &&
+      _.get(dataStorageConfig, 'troubleTableInfo.tableName')
     );
 
     const strMeasureDate = BU.convertDateToText(dataStorageContainer.processingDate);
@@ -219,7 +214,7 @@ class DataStorage {
     // insertDataList에 날짜 추가
     _.forEach(dataStorageContainer.insertDataList, insertData => {
       // BU.CLIN(insertData)
-      insertData[refinedDeviceDataConfig.dataTableInfo.insertDateKey] = strMeasureDate;
+      insertData[dataStorageConfig.dataTableInfo.insertDateKey] = strMeasureDate;
     });
     return dataStorageContainer;
   }
@@ -238,17 +233,17 @@ class DataStorage {
       }
 
       // DB 접속 정보가 없다면 에러
-      if (_.isEmpty(this.BM)) {
+      if (_.isEmpty(this.biModle)) {
         throw new Error(`There is no DB connection information. [${deviceCategory}]`);
       }
 
       if (this.hasSaveToDB) {
         // BU.CLI(dataStorageContainer);
-        const { dataTableInfo, troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
+        const { dataTableInfo, troubleTableInfo } = dataStorageContainer.dataStorageConfig;
 
         // 입력할 Data와 저장할 DB Table이 있을 경우
         if (dataStorageContainer.insertDataList.length && dataTableInfo.tableName) {
-          await this.BM.setTables(
+          await this.biModle.setTables(
             dataTableInfo.tableName,
             dataStorageContainer.insertDataList,
             false,
@@ -257,7 +252,7 @@ class DataStorage {
 
         // 입력할 Trouble Data가 있을 경우
         if (dataStorageContainer.insertTroubleList.length) {
-          await this.BM.setTables(
+          await this.biModle.setTables(
             troubleTableInfo.tableName,
             dataStorageContainer.insertTroubleList,
             false,
@@ -266,7 +261,7 @@ class DataStorage {
 
         // 수정할 Trouble이 있을 경우
         if (dataStorageContainer.updateTroubleList.length) {
-          await this.BM.updateTablesByPool(
+          await this.biModle.updateTablesByPool(
             troubleTableInfo.tableName,
             troubleTableInfo.indexInfo.primaryKey,
             dataStorageContainer.updateTroubleList,
@@ -308,7 +303,7 @@ class DataStorage {
    * @return {dataStorage}
    */
   getDataStorage(deviceId, deviceCategory) {
-    // BU.CLIN(this.refinedDeviceDataConfigList);
+    // BU.CLIN(this.dataStorageConfigList);
     // BU.CLIN(this.dataStorageContainerList);
     // BU.CLI(deviceId, deviceCategory);
     try {
@@ -384,7 +379,7 @@ class DataStorage {
     const updateTroubleList = [];
 
     // 에러를 저장할 DB Schema 정보
-    const { troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
+    const { troubleTableInfo } = dataStorageContainer.dataStorageConfig;
     const measureDeviceConfig = dataStorage.config;
 
     // 에러를 처리할 대상 설정
@@ -487,8 +482,8 @@ class DataStorage {
     const { data, config } = dataStorage;
 
     // BU.CLI(data);
-    const { refinedDeviceDataConfig } = dataStorageContainer;
-    const { matchingList, addParamList } = refinedDeviceDataConfig.dataTableInfo;
+    const { dataStorageConfig } = dataStorageContainer;
+    const { matchingList, addParamList } = dataStorageConfig.dataTableInfo;
 
     // 데이터가 Array.<Object> 형태일 경우
     if (_.isArray(data)) {
@@ -610,11 +605,11 @@ class DataStorage {
    */
   getTroubleList(dataStorageContainer) {
     // DB 접속 정보가 없다면 에러
-    if (_.isEmpty(this.BM)) {
+    if (_.isEmpty(this.biModle)) {
       throw new Error('DB information does not exist.');
     }
 
-    const { troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
+    const { troubleTableInfo } = dataStorageContainer.dataStorageConfig;
     const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
     const { foreignKey, primaryKey } = indexInfo;
 
@@ -634,7 +629,7 @@ class DataStorage {
         ORDER BY o.${primaryKey} ASC
     `;
 
-    return this.BM.db.single(sql);
+    return this.biModle.db.single(sql);
   }
 }
 module.exports = DataStorage;

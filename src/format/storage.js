@@ -14,7 +14,7 @@
  * @property {Array.<deviceErrorInfo>} troubleList 장치와 약속한 프로토콜 상에서 발생한 에러
  * @property {Array.<deviceErrorInfo>} systemErrorList Controller를 구동하고 장치와 연결을 수립하고 통신하는 중간에 생기는 에러
  * @property {Date} measureDate 현재 데이터들의 측정 시간 (DeviceContainer에서 처리)
- * @property {Object[]} convertedDataList data를 {refinedDeviceDataConfig}를 통해서 변경한 데이터 (DeviceContainer에서 처리)
+ * @property {Object[]} convertedDataList data를 {dataStorageConfig}를 통해서 변경한 데이터 (DeviceContainer에서 처리)
  */
 
 /**
@@ -37,7 +37,7 @@
 /**
  * @typedef {Object} dataStorageContainer Device Category별로 dataStorage를 관리하는 주체
  * @property {string} deviceCategory 장치 카테고리 (inverter, connector, weatherDevice, ...etc)
- * @property {refinedDeviceDataConfig} refinedDeviceDataConfig 데이터를 가공하기 위한 설정 변수
+ * @property {dataStorageConfig} dataStorageConfig 데이터를 가공하기 위한 설정 변수
  * @property {Array} insertTroubleList 신규 오류 리스트
  * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
  * @property {Array} insertDataList 저장할 계측 데이터 리스트
@@ -52,7 +52,7 @@
  */
 
 /**
- * @typedef {Object} refinedDeviceDataConfig 순수 데이터를 가공하기 위한 옵션
+ * @typedef {Object} dataStorageConfig 순수 데이터를 가공하기 위한 옵션
  * @property {string} deviceCategory
  * @property {troubleTableInfo} troubleTableInfo 장치 에러에 관한 처리 설정 정보
  * @property {dataTableInfo} dataTableInfo 장치 계측 데이터에 관한 처리 설정 정보
