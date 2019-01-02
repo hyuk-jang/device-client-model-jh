@@ -11,7 +11,8 @@ class AbstDeviceClientModel {
    * @param {dbInfo} dbInfo
    */
   setDbConnector(dbInfo) {
-    this.biModle = new BM(dbInfo);
+    console.log('setDbConnector', dbInfo);
+    this.biModule = new BM(dbInfo);
   }
 
   /**
@@ -45,7 +46,7 @@ class AbstDeviceClientModel {
    * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
    * @return {dataStorageContainer}
    */
-  async refineTheDataToSaveDB(deviceCategory, processingDate, hasIgnoreError) {}
+  async refineStorageData(deviceCategory, processingDate, hasIgnoreError) {}
 
   /**
    * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
@@ -53,6 +54,13 @@ class AbstDeviceClientModel {
    * @return {dataStorageContainer}
    */
   async saveDataToDB(deviceCategory) {}
+
+  /**
+   * 장치 저장소 카테고리에 맞는 타입을 가져옴
+   * @param {string} storageCategory 저장소 카테고리 'inverter', 'connector' ... etc
+   * @return {dataStorageContainer}
+   */
+  getDataStorageContainer(storageCategory) {}
 }
 module.exports = AbstDeviceClientModel;
 

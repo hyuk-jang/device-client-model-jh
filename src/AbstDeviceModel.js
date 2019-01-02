@@ -9,7 +9,7 @@ require('./format/storage');
 let dataStorage = {};
 class AbstDeviceModel {
   /**
-   * @param {Array.<dataStorageConfig>} dataStorageConfigList
+   * @param {dataStorageConfig[]} dataStorageConfigList
    */
   constructor(dataStorageConfigList) {
     if (_.isArray(dataStorageConfigList)) {
@@ -49,11 +49,12 @@ class AbstDeviceModel {
 
   /**
    * Device Client 추가
-   * @return {dataStorageContainer}
-   *
+   * @param {blockConfig[]} blockConfigList
+   * @return {dataStorageContainer[]}
    */
-  setDeviceForDB() {
-    return dataStorage.setDeviceForDB();
+  async setDeviceForDB(blockConfig) {
+    const dataStorageContainerList = await dataStorage.setDeviceForDB(blockConfig);
+    return dataStorageContainerList;
   }
 
   /**
@@ -73,8 +74,8 @@ class AbstDeviceModel {
    * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
    * @return {dataStorageContainer}
    */
-  async refineTheDataToSaveDB(deviceCategory, processingDate, hasIgnoreError) {
-    const dataStorageContainer = await dataStorage.refineTheDataToSaveDB(
+  async refineStorageData(deviceCategory, processingDate, hasIgnoreError) {
+    const dataStorageContainer = await dataStorage.refineStorageData(
       deviceCategory,
       processingDate,
       hasIgnoreError,
