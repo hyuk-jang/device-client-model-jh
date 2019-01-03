@@ -35,14 +35,14 @@
  */
 
 /**
- * @typedef {Object} dataStorageContainer Device Category별로 dataStorage를 관리하는 주체
+ * @typedef {Object} dataContainer Device Category별로 dataStorage를 관리하는 주체
  * @property {string} deviceCategory 장치 카테고리 (inverter, connector, weatherDevice, ...etc)
  * @property {dataStorageConfig} dataStorageConfig 데이터를 가공하기 위한 설정 변수
  * @property {Array} insertTroubleList 신규 오류 리스트
  * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
  * @property {Array} insertDataList 저장할 계측 데이터 리스트
  * @property {Date} processingDate 본 DB에 컨테이너를 처리한 시각
- * @property {Array.<dataStorage>} storage 관리하고 있는 Device Controller 계측 데이터 객체 리스트
+ * @property {Array.<dataStorage>} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
  */
 
 /**
@@ -96,5 +96,5 @@
 /**
  * @typedef {Object} setDeviceKeyInfo setDevice를 할 경우 설정 정보에 반영할 Key
  * @property {string} idKey 장치 id로 사용할 key
- * @property {string} deviceCategoryKey dataStorageContainer 에 소속될 장치 카테고리 key
+ * @property {string} deviceCategoryKey dataContainer 에 소속될 장치 카테고리 key
  */

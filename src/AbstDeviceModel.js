@@ -1,22 +1,26 @@
 const _ = require('lodash');
 
+const AbstDeviceClientModel = require('./device-data-storage/AbstDeviceClientModel');
 const DataStorage = require('./device-data-storage/DataStorage');
 const DataStorageForDBS = require('./device-data-storage/DataStorageForDBS');
 
 require('./format/storage');
 
-/** @type {AbstDeviceModel} */
-let dataStorage = {};
+/** @type {AbstDeviceClientModel} */
+let dcmManager = {};
 class AbstDeviceModel {
   /**
    * @param {dataStorageConfig[]} dataStorageConfigList
    */
   constructor(dataStorageConfigList) {
+    // Binding 처리는 한번만 수행 할 수 있도록 함.
+    this.bindingPlaceList = _.once(this.bindingPlaceList);
+
     if (_.isArray(dataStorageConfigList)) {
       /** @private */
-      dataStorage = new DataStorage(dataStorageConfigList);
+      dcmManager = new DataStorage(dataStorageConfigList);
     } else {
-      dataStorage = new DataStorageForDBS();
+      dcmManager = new DataStorageForDBS();
     }
   }
 
@@ -25,7 +29,7 @@ class AbstDeviceModel {
    * @param {boolean} hasSaveToDB
    */
   setHasSaveToDB(hasSaveToDB) {
-    dataStorage.hasSaveToDB = hasSaveToDB;
+    dcmManager.hasSaveToDB = hasSaveToDB;
   }
 
   /**
@@ -33,38 +37,48 @@ class AbstDeviceModel {
    * @param {dbInfo} dbInfo
    */
   setDbConnector(dbInfo) {
-    return dataStorage.setDbConnector(dbInfo);
+    return dcmManager.setDbConnector(dbInfo);
   }
 
   /**
    * Device Client 추가
    * @param {Object} deviceConfigInfo 장치 컨트롤러를 생성하기 위한 객체 설정 정보
    * @param {setDeviceKeyInfo} setDeviceKeyInfo 컨트롤러 ID 및 Category를 쓸 Key Name 정보
-   * @return {dataStorageContainer}
+   * @return {dataContainer}
    *
    */
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
-    return dataStorage.setDevice(deviceConfigInfo, setDeviceKeyInfo);
+    return dcmManager.setDevice(deviceConfigInfo, setDeviceKeyInfo);
   }
 
   /**
+   * @desc only DBS.
    * Device Client 추가
    * @param {blockConfig[]} blockConfigList
-   * @return {dataStorageContainer[]}
+   * @return {dataContainer[]}
    */
-  async setDeviceForDB(blockConfig) {
-    const dataStorageContainerList = await dataStorage.setDeviceForDB(blockConfig);
-    return dataStorageContainerList;
+  async setDeviceForDB(blockConfigList) {
+    const dataContainerList = await dcmManager.setDeviceForDB(blockConfigList);
+    return dataContainerList;
+  }
+
+  /**
+   * @desc only DBS.
+   * dataContainer과 연관이 있는 place Node List를 세팅함.
+   * @param {placeInfo[]} placeList
+   */
+  bindingPlaceList(placeList) {
+    dcmManager.bindingPlaceList(placeList);
   }
 
   /**
    * 장치에서 계측한 데이터를 갱신하고자 할 경우 호출
    * @param {deviceOperationInfo|Array.<deviceOperationInfo>} deviceOperationInfo Device Controller getDeviceOperationInfo() 결과
    * @param {string} deviceCategory 장치 Category 'inverter', 'connector'
-   * @return {dataStorageContainer}
+   * @return {dataContainer}
    */
   onDeviceOperationInfo(deviceOperationInfo, deviceCategory) {
-    return dataStorage.onDeviceOperationInfo(deviceOperationInfo, deviceCategory);
+    return dcmManager.onDeviceOperationInfo(deviceOperationInfo, deviceCategory);
   }
 
   /**
@@ -72,25 +86,25 @@ class AbstDeviceModel {
    * @param {string} deviceCategory  장치 Type 'inverter', 'connector'
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
-   * @return {dataStorageContainer}
+   * @return {dataContainer}
    */
-  async refineStorageData(deviceCategory, processingDate, hasIgnoreError) {
-    const dataStorageContainer = await dataStorage.refineStorageData(
+  async refineDataContainer(deviceCategory, processingDate, hasIgnoreError) {
+    const dataContainer = await dcmManager.refineDataContainer(
       deviceCategory,
       processingDate,
       hasIgnoreError,
     );
-    return dataStorageContainer;
+    return dataContainer;
   }
 
   /**
    * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
    * @param {string} deviceCategory 카테고리 명
-   * @return {dataStorageContainer}
+   * @return {dataContainer}
    */
   async saveDataToDB(deviceCategory) {
-    const dataStorageContainer = await dataStorage.saveDataToDB(deviceCategory);
-    return dataStorageContainer;
+    const dataContainer = await dcmManager.saveDataToDB(deviceCategory);
+    return dataContainer;
   }
 }
 module.exports = AbstDeviceModel;

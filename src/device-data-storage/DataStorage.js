@@ -26,8 +26,8 @@ class DataStorage extends AbstDeviceClientModel {
 
     this.dataStorageConfigList = dataStorageConfigList;
 
-    /** @type {dataStorageContainer[]} */
-    this.dataStorageContainerList = [];
+    /** @type {dataContainer[]} */
+    this.dataContainerList = [];
     // /** @type {Array.<controllerStorageContainer>} */
     // this.deviceControllerStorageList = [];
 
@@ -54,11 +54,11 @@ class DataStorage extends AbstDeviceClientModel {
     const deviceCategory = _.get(deviceInfo, deviceCategoryKey);
 
     // Category에 맞는 StorageData를 가져옴
-    let dataStorageContainer = this.getDataStorageContainer(deviceCategory);
+    let dataContainer = this.getDataContainer(deviceCategory);
     // 없다면 새로 생성
-    if (dataStorageContainer === undefined) {
-      /** @type {dataStorageContainer} */
-      dataStorageContainer = {
+    if (dataContainer === undefined) {
+      /** @type {dataContainer} */
+      dataContainer = {
         deviceCategory,
         dataStorageConfig: _.find(this.dataStorageConfigList, {
           deviceCategory,
@@ -66,11 +66,11 @@ class DataStorage extends AbstDeviceClientModel {
         insertTroubleList: [],
         updateTroubleList: [],
         insertDataList: [],
-        storage: [],
+        dataStorageList: [],
         processingDate: null,
       };
 
-      this.dataStorageContainerList.push(dataStorageContainer);
+      this.dataContainerList.push(dataContainer);
     }
 
     const dataStorage = this.getDataStorage(deviceInfo[idKey], deviceCategory);
@@ -85,7 +85,7 @@ class DataStorage extends AbstDeviceClientModel {
         convertedDataList: null,
         measureDate: null,
       };
-      dataStorageContainer.storage.push(dataStorageInfo);
+      dataContainer.dataStorageList.push(dataStorageInfo);
       // BU.CLIN(this.deviceDataStorageList);
     } else {
       throw new Error('The device is already registered.');
@@ -99,9 +99,9 @@ class DataStorage extends AbstDeviceClientModel {
    * @param {string} deviceCategory 장치 Category 'inverter', 'connector'
    */
   onDeviceOperationInfo(deviceOperationInfo, deviceCategory) {
-    const dataStorageContainer = this.getDataStorageContainer(deviceCategory);
+    const dataContainer = this.getDataContainer(deviceCategory);
 
-    if (_.isEmpty(dataStorageContainer)) {
+    if (_.isEmpty(dataContainer)) {
       throw Error(`There is no such device type.[${deviceCategory}] `);
     }
 
@@ -113,7 +113,7 @@ class DataStorage extends AbstDeviceClientModel {
       this.updateDataStorage(deviceOperInfo, deviceCategory);
     });
 
-    return dataStorageContainer;
+    return dataContainer;
   }
 
   /**
@@ -123,18 +123,17 @@ class DataStorage extends AbstDeviceClientModel {
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
    */
-  async refineStorageData(deviceCategory, processingDate, hasIgnoreError) {
+  async refineDataContainer(deviceCategory, processingDate, hasIgnoreError) {
     // BU.CLI('refineTheDataToSaveDB', deviceCategory);
-    const dataStorageContainer = this.getDataStorageContainer(deviceCategory);
-    // BU.CLIN(dataStorageContainer);
+    const dataContainer = this.getDataContainer(deviceCategory);
+    // BU.CLIN(dataContainer);
 
-    if (_.isEmpty(dataStorageContainer)) {
+    if (_.isEmpty(dataContainer)) {
       throw new Error(`There is no such device category. [${deviceCategory}]`);
     }
     // 처리 시각 저장
-    dataStorageContainer.processingDate =
-      processingDate instanceof Date ? processingDate : new Date();
-    const { dataStorageConfig, storage } = dataStorageContainer;
+    dataContainer.processingDate = processingDate instanceof Date ? processingDate : new Date();
+    const { dataStorageConfig, dataStorageList: storage } = dataContainer;
 
     // Trouble을 적용할 TableName이 존재해야만 DB에 에러처리를 적용하는 것으로 판단
     const hasApplyToDatabaseForError = !!(
@@ -142,12 +141,12 @@ class DataStorage extends AbstDeviceClientModel {
       _.get(dataStorageConfig, 'troubleTableInfo.tableName')
     );
 
-    const strMeasureDate = BU.convertDateToText(dataStorageContainer.processingDate);
+    const strMeasureDate = BU.convertDateToText(dataContainer.processingDate);
     let remainDbTroublePacketList = [];
 
     // TODO: Trouble을 DB상에 처리할 것이라면
     if (hasApplyToDatabaseForError) {
-      remainDbTroublePacketList = await this.getTroubleList(dataStorageContainer);
+      remainDbTroublePacketList = await this.getTroubleList(dataContainer);
       // BU.CLI(dbTroublePacketList);
     }
     // BU.CLI(dbTroublePacketList);
@@ -160,24 +159,24 @@ class DataStorage extends AbstDeviceClientModel {
       if (hasApplyToDatabaseForError) {
         const resultProcessError = this.processDeviceErrorList(
           dataStorage,
-          dataStorageContainer,
+          dataContainer,
           remainDbTroublePacketList,
         );
         // 에러 처리한 결과를 컨테이너에 반영
         _.set(
-          dataStorageContainer,
+          dataContainer,
           'insertTroubleList',
           _.concat(
-            _.get(dataStorageContainer, 'insertTroubleList', []),
+            _.get(dataContainer, 'insertTroubleList', []),
             _.get(resultProcessError, 'insertTroubleList', []),
           ),
         );
 
         _.set(
-          dataStorageContainer,
+          dataContainer,
           'updateTroubleList',
           _.concat(
-            _.get(dataStorageContainer, 'updateTroubleList', []),
+            _.get(dataContainer, 'updateTroubleList', []),
             _.get(resultProcessError, 'updateTroubleList', []),
           ),
         );
@@ -190,14 +189,14 @@ class DataStorage extends AbstDeviceClientModel {
         _.set(
           dataStorage,
           'convertedDataList',
-          this.processDeviceDataList(dataStorage, dataStorageContainer),
+          this.processDeviceDataList(dataStorage, dataContainer),
         );
         // DB에 저장할 insertDataList에 새로운 insertData를 더함.
         _.set(
-          dataStorageContainer,
+          dataContainer,
           'insertDataList',
           _.concat(
-            _.get(dataStorageContainer, 'insertDataList', []),
+            _.get(dataContainer, 'insertDataList', []),
             _.get(dataStorage, 'convertedDataList', []),
           ),
         );
@@ -212,16 +211,16 @@ class DataStorage extends AbstDeviceClientModel {
             ? BU.convertDateToText(dbTrouble.occur_date)
             : strMeasureDate;
         dbTrouble.fix_date = strMeasureDate;
-        dataStorageContainer.updateTroubleList.push(dbTrouble);
+        dataContainer.updateTroubleList.push(dbTrouble);
       });
     }
 
     // insertDataList에 날짜 추가
-    _.forEach(dataStorageContainer.insertDataList, insertData => {
+    _.forEach(dataContainer.insertDataList, insertData => {
       // BU.CLIN(insertData)
       insertData[dataStorageConfig.dataTableInfo.insertDateKey] = strMeasureDate;
     });
-    return dataStorageContainer;
+    return dataContainer;
   }
 
   /**
@@ -231,10 +230,10 @@ class DataStorage extends AbstDeviceClientModel {
    */
   async saveDataToDB(deviceCategory) {
     // Category에 맞는 StorageData를 가져옴
-    const dataStorageContainer = this.getDataStorageContainer(deviceCategory);
+    const dataContainer = this.getDataContainer(deviceCategory);
 
     try {
-      if (_.isEmpty(dataStorageContainer)) {
+      if (_.isEmpty(dataContainer)) {
         throw new Error(`There is no such device category. [${deviceCategory}]`);
       }
 
@@ -244,47 +243,47 @@ class DataStorage extends AbstDeviceClientModel {
       }
 
       if (this.hasSaveToDB) {
-        // BU.CLI(dataStorageContainer);
-        const { dataTableInfo, troubleTableInfo } = dataStorageContainer.dataStorageConfig;
+        // BU.CLI(dataContainer);
+        const { dataTableInfo, troubleTableInfo } = dataContainer.dataStorageConfig;
 
         // 입력할 Data와 저장할 DB Table이 있을 경우
-        if (dataStorageContainer.insertDataList.length && dataTableInfo.tableName) {
+        if (dataContainer.insertDataList.length && dataTableInfo.tableName) {
           await this.biModule.setTables(
             dataTableInfo.tableName,
-            dataStorageContainer.insertDataList,
+            dataContainer.insertDataList,
             false,
           );
         }
 
         // 입력할 Trouble Data가 있을 경우
-        if (dataStorageContainer.insertTroubleList.length) {
+        if (dataContainer.insertTroubleList.length) {
           await this.biModule.setTables(
             troubleTableInfo.tableName,
-            dataStorageContainer.insertTroubleList,
+            dataContainer.insertTroubleList,
             false,
           );
         }
 
         // 수정할 Trouble이 있을 경우
-        if (dataStorageContainer.updateTroubleList.length) {
+        if (dataContainer.updateTroubleList.length) {
           await this.biModule.updateTablesByPool(
             troubleTableInfo.tableName,
             troubleTableInfo.indexInfo.primaryKey,
-            dataStorageContainer.updateTroubleList,
+            dataContainer.updateTroubleList,
             false,
           );
         }
       }
-      dataStorageContainer.insertDataList = [];
-      dataStorageContainer.insertTroubleList = [];
-      dataStorageContainer.updateTroubleList = [];
+      dataContainer.insertDataList = [];
+      dataContainer.insertTroubleList = [];
+      dataContainer.updateTroubleList = [];
 
-      return dataStorageContainer;
+      return dataContainer;
     } catch (error) {
       // 초기화
-      dataStorageContainer.insertDataList = [];
-      dataStorageContainer.insertTroubleList = [];
-      dataStorageContainer.updateTroubleList = [];
+      dataContainer.insertDataList = [];
+      dataContainer.insertTroubleList = [];
+      dataContainer.updateTroubleList = [];
 
       throw error;
     }
@@ -293,11 +292,11 @@ class DataStorage extends AbstDeviceClientModel {
   /**
    * 장치 카테고리에 맞는 타입을 가져옴
    * @param {string} deviceCategory 장치 카테고리 'inverter', 'connector' ... etc
-   * @return {dataStorageContainer}
+   * @return {dataContainer}
    */
-  getDataStorageContainer(deviceCategory) {
+  getDataContainer(deviceCategory) {
     // BU.CLI(this.deviceDataStorageList);
-    return _.find(this.dataStorageContainerList, {
+    return _.find(this.dataContainerList, {
       deviceCategory,
     });
   }
@@ -310,29 +309,28 @@ class DataStorage extends AbstDeviceClientModel {
    */
   getDataStorage(deviceId, deviceCategory) {
     // BU.CLIN(this.dataStorageConfigList);
-    // BU.CLIN(this.dataStorageContainerList);
     // BU.CLI(deviceId, deviceCategory);
     try {
       if (deviceCategory.length) {
-        const storageData = this.getDataStorageContainer(deviceCategory);
-        return storageData
-          ? _.find(storageData.storage, {
+        const dataContainer = this.getDataContainer(deviceCategory);
+        return dataContainer
+          ? _.find(dataContainer.dataStorageList, {
               id: deviceId,
             })
           : {};
       }
-      let foundIt = {};
-      _.find(this.dataStorageContainerList, deviceDataStorage => {
-        const foundStorage = _.find(deviceDataStorage.storage, {
+      let dataStorage = {};
+      _.find(this.dataContainerList, deviceDataStorage => {
+        const foundDataStorage = _.find(deviceDataStorage.dataStorageList, {
           id: deviceId,
         });
-        if (_.isEmpty(foundStorage)) {
+        if (_.isEmpty(foundDataStorage)) {
           return false;
         }
-        foundIt = foundStorage;
+        dataStorage = foundDataStorage;
         return true;
       });
-      return foundIt;
+      return dataStorage;
     } catch (error) {
       throw error;
     }
@@ -376,16 +374,16 @@ class DataStorage extends AbstDeviceClientModel {
    * @private
    * Device Error 처리. 신규 에러라면 insert, 기존 에러라면 dbTroubleList에서 해당 에러 삭제, 최종으로 남아있는 에러는 update
    * @param {dataStorage} dataStorage
-   * @param {dataStorageContainer} dataStorageContainer
+   * @param {dataContainer} dataContainer
    * @param {deviceOperationInfo.<defaultDbTroubleTableScheme>} dbTroublePacketList DB에서 가져온 trouble list.
    */
-  processDeviceErrorList(dataStorage, dataStorageContainer, dbTroublePacketList) {
+  processDeviceErrorList(dataStorage, dataContainer, dbTroublePacketList) {
     // BU.CLI('processSystemErrorList', deviceErrorList, categoryInfo.seq, deviceType);
     const insertTroubleList = [];
     const updateTroubleList = [];
 
     // 에러를 저장할 DB Schema 정보
-    const { troubleTableInfo } = dataStorageContainer.dataStorageConfig;
+    const { troubleTableInfo } = dataContainer.dataStorageConfig;
     const measureDeviceConfig = dataStorage.config;
 
     // 에러를 처리할 대상 설정
@@ -481,14 +479,14 @@ class DataStorage extends AbstDeviceClientModel {
    * @private
    * 장치 데이터 리 처리하여 반환
    * @param {dataStorage} dataStorage deviceDataList 요소. 시퀀스 와 측정 날짜
-   * @param {dataStorageContainer} dataStorageContainer deviceDataList 요소. 시퀀스 와 측정 날짜
+   * @param {dataContainer} dataContainer deviceDataList 요소. 시퀀스 와 측정 날짜
    */
-  processDeviceDataList(dataStorage, dataStorageContainer) {
+  processDeviceDataList(dataStorage, dataContainer) {
     // 장치 데이터, 장치 설정 정보
     const { data, config } = dataStorage;
 
     // BU.CLI(data);
-    const { dataStorageConfig } = dataStorageContainer;
+    const { dataStorageConfig } = dataContainer;
     const { matchingList, addParamList } = dataStorageConfig.dataTableInfo;
 
     // 데이터가 Array.<Object> 형태일 경우
@@ -607,15 +605,15 @@ class DataStorage extends AbstDeviceClientModel {
    * @protected 색다르게 필요하다면 구현
    * Device Category 에 접미사 _trouble_data 를 붙이는걸 전제로 함
    * Trouble 형식 --> {${id}, ${seq}, code, msg, occur_date, fix_date}
-   * @param {dataStorageContainer} dataStorageContainer deviceDataList 요소. 시퀀스 와 측정 날짜
+   * @param {dataContainer} dataContainer deviceDataList 요소. 시퀀스 와 측정 날짜
    */
-  getTroubleList(dataStorageContainer) {
+  getTroubleList(dataContainer) {
     // DB 접속 정보가 없다면 에러
     if (_.isEmpty(this.biModule)) {
       throw new Error('DB information does not exist.');
     }
 
-    const { troubleTableInfo } = dataStorageContainer.dataStorageConfig;
+    const { troubleTableInfo } = dataContainer.dataStorageConfig;
     const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
     const { foreignKey, primaryKey } = indexInfo;
 

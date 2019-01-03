@@ -1,4 +1,25 @@
 /**
+ * @typedef {Object} dataStorageDBS Device Controller 현재 장치의 계측 및 오류 데이터를 관리하는 상위 주체
+ * @property {string} id Device Controller ID
+ * @property {number} placeSeq 장소 시퀀스
+ * @property {nodeInfo[]} nodeList place와 관련된 nodeInfo
+ * @property {deviceErrorInfo[]} troubleList 장치와 약속한 프로토콜 상에서 발생한 에러
+ * @property {Object} convertedNodeData nodeList에서 DB에 적용할 데이터를 추출하여 정제된 데이터. {dataStorageConfig}를 통해서 변경한 데이터 (DeviceContainer에서 처리)
+ * @property {Date} measureDate 현재 데이터들의 측정 시간 (DeviceContainer에서 처리)
+ */
+
+/**
+ * @typedef {Object} dataContainerDBS Device Category별로 dataStorage를 관리하는 주체
+ * @property {string} deviceCategory 장치(블록) 카테고리 (inverter, connector, weatherDevice, ...etc)
+ * @property {blockConfig} dataStorageConfig 데이터를 가공하기 위한 설정 변수
+ * @property {Array} insertTroubleList 신규 오류 리스트
+ * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
+ * @property {Array} insertDataList 저장할 계측 데이터 리스트
+ * @property {Date} processingDate 본 DB에 컨테이너를 처리한 시각
+ * @property {Array.<dataStorage>} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
+ */
+
+/**
  * @typedef {Object} blockConfig
  * @property {string} blockCategory 데이터를 저장하는 트리거 카테고리.
  * @property {baseTableInfo} baseTableInfo
