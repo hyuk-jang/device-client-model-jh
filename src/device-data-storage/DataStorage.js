@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
-const { BM } = require('base-model-jh');
 require('../format/storage');
 
 // /**
@@ -142,14 +141,11 @@ class DataStorage extends AbstDeviceClientModel {
     );
 
     const strMeasureDate = BU.convertDateToText(dataContainer.processingDate);
-    let remainDbTroublePacketList = [];
+    let remainTroubleRows = [];
 
-    // TODO: Trouble을 DB상에 처리할 것이라면
     if (hasApplyToDatabaseForError) {
-      remainDbTroublePacketList = await this.getTroubleList(dataContainer);
-      // BU.CLI(dbTroublePacketList);
+      remainTroubleRows = await this.getTroubleList(dataContainer);
     }
-    // BU.CLI(dbTroublePacketList);
 
     // 카테고리에 저장되어 있는 저장소의 모든 데이터 점검
     storage.forEach(dataStorage => {
@@ -160,7 +156,7 @@ class DataStorage extends AbstDeviceClientModel {
         const resultProcessError = this.processDeviceErrorList(
           dataStorage,
           dataContainer,
-          remainDbTroublePacketList,
+          remainTroubleRows,
         );
         // 에러 처리한 결과를 컨테이너에 반영
         _.set(
@@ -181,7 +177,7 @@ class DataStorage extends AbstDeviceClientModel {
           ),
         );
 
-        remainDbTroublePacketList = resultProcessError.dbTroublePacketList;
+        remainTroubleRows = resultProcessError.dbTroublePacketList;
       }
 
       // Trouble 이나 System Error가 발생한 계측 데이터는 사용하지 않음. 단 ignore 옵션이 활성화 될 경우 삽입
@@ -205,7 +201,7 @@ class DataStorage extends AbstDeviceClientModel {
 
     // 남아있는 dbTroubleList는 Clear 처리
     if (hasApplyToDatabaseForError) {
-      remainDbTroublePacketList.forEach(dbTrouble => {
+      remainTroubleRows.forEach(dbTrouble => {
         dbTrouble.occur_date =
           dbTrouble.occur_date instanceof Date
             ? BU.convertDateToText(dbTrouble.occur_date)
@@ -242,49 +238,48 @@ class DataStorage extends AbstDeviceClientModel {
         throw new Error(`There is no DB connection information. [${deviceCategory}]`);
       }
 
-      if (this.hasSaveToDB) {
-        // BU.CLI(dataContainer);
-        const { dataTableInfo, troubleTableInfo } = dataContainer.dataStorageConfig;
+      const {
+        dataStorageConfig,
+        insertDataList,
+        insertTroubleList,
+        updateTroubleList,
+      } = dataContainer;
 
-        // 입력할 Data와 저장할 DB Table이 있을 경우
-        if (dataContainer.insertDataList.length && dataTableInfo.tableName) {
-          await this.biModule.setTables(
-            dataTableInfo.tableName,
-            dataContainer.insertDataList,
-            false,
-          );
-        }
+      const { dataTableInfo, troubleTableInfo } = dataStorageConfig;
 
-        // 입력할 Trouble Data가 있을 경우
-        if (dataContainer.insertTroubleList.length) {
-          await this.biModule.setTables(
-            troubleTableInfo.tableName,
-            dataContainer.insertTroubleList,
-            false,
-          );
-        }
-
-        // 수정할 Trouble이 있을 경우
-        if (dataContainer.updateTroubleList.length) {
-          await this.biModule.updateTablesByPool(
-            troubleTableInfo.tableName,
-            troubleTableInfo.indexInfo.primaryKey,
-            dataContainer.updateTroubleList,
-            false,
-          );
-        }
-      }
+      // list 초기화
       dataContainer.insertDataList = [];
       dataContainer.insertTroubleList = [];
       dataContainer.updateTroubleList = [];
+
+      // 저장하지 않고자 할 경우 실행하지 않음.
+      if (!this.hasSaveToDB) return false;
+      // BU.CLI(dataContainer);
+
+      // 입력할 Data와 저장할 DB Table이 있을 경우
+      if (insertDataList.length && dataTableInfo.tableName) {
+        await this.biModule.setTables(dataTableInfo.tableName, insertDataList, false);
+      }
+
+      // Trouble Table 정보가 존재한다면
+      if (!_.isEmpty(troubleTableInfo)) {
+        const { tableName, indexInfo } = troubleTableInfo;
+        const { primaryKey } = indexInfo;
+
+        // 입력할 Trouble Data가 있을 경우
+        if (insertTroubleList.length) {
+          await this.biModule.setTables(tableName, insertTroubleList, false);
+        }
+
+        // 수정할 Trouble이 있을 경우
+        if (updateTroubleList.length) {
+          await this.biModule.updateTablesByPool(tableName, primaryKey, updateTroubleList, false);
+        }
+      }
 
       return dataContainer;
     } catch (error) {
       // 초기화
-      dataContainer.insertDataList = [];
-      dataContainer.insertTroubleList = [];
-      dataContainer.updateTroubleList = [];
-
       throw error;
     }
   }
@@ -375,10 +370,10 @@ class DataStorage extends AbstDeviceClientModel {
    * Device Error 처리. 신규 에러라면 insert, 기존 에러라면 dbTroubleList에서 해당 에러 삭제, 최종으로 남아있는 에러는 update
    * @param {dataStorage} dataStorage
    * @param {dataContainer} dataContainer
-   * @param {deviceOperationInfo.<defaultDbTroubleTableScheme>} dbTroublePacketList DB에서 가져온 trouble list.
+   * @param {deviceOperationInfo.<defaultDbTroubleTableScheme>} remainTroubleRows DB에서 가져온 trouble list.
    */
-  processDeviceErrorList(dataStorage, dataContainer, dbTroublePacketList) {
-    // BU.CLI('processSystemErrorList', deviceErrorList, categoryInfo.seq, deviceType);
+  processDeviceErrorList(dataStorage, dataContainer, remainTroubleRows) {
+    // BU.CLI('processSystemErrorList', remainTroubleRows);
     const insertTroubleList = [];
     const updateTroubleList = [];
 
@@ -406,31 +401,18 @@ class DataStorage extends AbstDeviceClientModel {
 
     // 기존 DB에 저장되어 있는 에러라면 제거
     deviceErrorList.forEach(deviceError => {
-      let hasExitError = false;
       // // 기존 시스템 에러가 존재한다면 처리할 필요가 없으므로 dbTroubleList에서 삭제
-      _.remove(dbTroublePacketList, dbTrouble => {
-        // code 가 같다면 설정 변수 값이 같은지 확인하여 모두 동일하다면 해당 에러 삭제
-        if (dbTrouble.code === deviceError.code) {
-          // TroubleTableInfo의 AddParam에 명시된 값과 dataStorage의 config Key 값들이 전부 일치 한다면 동일 에러라고 판단
-          const everyMatching = _.every(
-            troubleTableInfo.addParamList,
-            troubleParamInfo =>
-              dbTrouble[troubleParamInfo.toKey] === dataStorage.config[troubleParamInfo.fromKey],
-          );
-          if (everyMatching) {
-            hasExitError = true;
-          }
-          return false;
+      const deletedTroubleRows = _.remove(remainTroubleRows, remainTroubleRow => {
+        if (remainTroubleRow.code === deviceError.code) {
+          return _.every(addObjectParam, (v, k) => _.eq(v, remainTroubleRow[k]));
         }
-        // new Error
-        return false;
       });
 
       // 신규 에러라면 insertList에 추가
-      if (!hasExitError) {
+      if (!deletedTroubleRows.length) {
         const { changeColumnKeyInfo } = troubleTableInfo;
         const { codeKey, fixDateKey, isErrorKey, msgKey, occurDateKey } = changeColumnKeyInfo;
-        let addErrorObj = {
+        const newTroubleInfo = {
           [isErrorKey]: isSystemError,
           [codeKey]: deviceError.code,
           [msgKey]: deviceError.msg,
@@ -441,8 +423,7 @@ class DataStorage extends AbstDeviceClientModel {
           [fixDateKey]: null,
         };
 
-        addErrorObj = Object.assign(addObjectParam, addErrorObj);
-        insertTroubleList.push(addErrorObj);
+        insertTroubleList.push(Object.assign(addObjectParam, newTroubleInfo));
       }
     });
 
@@ -450,7 +431,7 @@ class DataStorage extends AbstDeviceClientModel {
     // Trouble 처리를 하지 않으므로
     if (isSystemError) {
       // ParamList에 적시된 config 값이 동일한 Db Error는 제거
-      _.remove(dbTroublePacketList, dbTroubleDataPacket => {
+      _.remove(remainTroubleRows, dbTroubleDataPacket => {
         const hasEqualDevice = _.every(
           troubleTableInfo.addParamList,
           currentItem =>
@@ -471,7 +452,7 @@ class DataStorage extends AbstDeviceClientModel {
     return {
       insertTroubleList,
       updateTroubleList,
-      dbTroublePacketList,
+      dbTroublePacketList: remainTroubleRows,
     };
   }
 
@@ -562,7 +543,7 @@ class DataStorage extends AbstDeviceClientModel {
         data = typeof data === 'string' ? Number(data) : data;
         // 숫자가 아니거나 null일 경우 throw 반환
         if (_.isNumber(data)) {
-          resultCalculate = Number((deviceData[fromKey] * calculate).toFixed(toFixed));
+          resultCalculate = _.round(_.multiply(deviceData[fromKey], calculate), toFixed);
           // BU.CLI('resultCalculate', resultCalculate);
         } else {
           resultCalculate = deviceData[fromKey];
@@ -615,25 +596,19 @@ class DataStorage extends AbstDeviceClientModel {
 
     const { troubleTableInfo } = dataContainer.dataStorageConfig;
     const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
+    const { codeKey, fixDateKey } = changeColumnKeyInfo;
     const { foreignKey, primaryKey } = indexInfo;
 
-    let sql = `
-      SELECT o.*
-        FROM ${tableName} o                    
-          LEFT JOIN ${tableName} b             
-              ON o.${changeColumnKeyInfo.codeKey} = b.${
-      changeColumnKeyInfo.codeKey
-    } AND o.${primaryKey} < b.${primaryKey}
-              `;
-    if (foreignKey) {
-      sql += ` AND  o.${foreignKey} = b.${foreignKey} `;
-    }
-    sql += `
-        WHERE b.${primaryKey} is NULL AND o.${changeColumnKeyInfo.fixDateKey} is NULL
-        ORDER BY o.${primaryKey} ASC
+    const sql = `
+      SELECT originTbl.*
+        FROM ${tableName} originTbl
+          LEFT JOIN ${tableName} joinTbl
+              ON originTbl.${codeKey} = joinTbl.${codeKey} AND originTbl.${primaryKey} < joinTbl.${primaryKey}
+      ${foreignKey ? ` AND originTbl.${foreignKey} = joinTbl.${foreignKey} ` : ''}
+        WHERE joinTbl.${primaryKey} is NULL AND originTbl.${fixDateKey} is NULL
+        ORDER BY originTbl.${primaryKey} ASC
     `;
-
-    return this.biModule.db.single(sql);
+    return this.biModule.db.single(sql, null, false);
   }
 }
 module.exports = DataStorage;

@@ -2,7 +2,6 @@ const _ = require('lodash');
 
 const AbstDeviceClientModel = require('./device-data-storage/AbstDeviceClientModel');
 const DataStorage = require('./device-data-storage/DataStorage');
-const DataStorageForDBS = require('./device-data-storage/DataStorageForDBS');
 
 require('./format/storage');
 
@@ -13,14 +12,9 @@ class AbstDeviceModel {
    * @param {dataStorageConfig[]} dataStorageConfigList
    */
   constructor(dataStorageConfigList) {
-    // Binding 처리는 한번만 수행 할 수 있도록 함.
-    this.bindingPlaceList = _.once(this.bindingPlaceList);
-
     if (_.isArray(dataStorageConfigList)) {
       /** @private */
       dcmManager = new DataStorage(dataStorageConfigList);
-    } else {
-      dcmManager = new DataStorageForDBS();
     }
   }
 
@@ -49,26 +43,6 @@ class AbstDeviceModel {
    */
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
     return dcmManager.setDevice(deviceConfigInfo, setDeviceKeyInfo);
-  }
-
-  /**
-   * @desc only DBS.
-   * Device Client 추가
-   * @param {blockConfig[]} blockConfigList
-   * @return {dataContainer[]}
-   */
-  async setDeviceForDB(blockConfigList) {
-    const dataContainerList = await dcmManager.setDeviceForDB(blockConfigList);
-    return dataContainerList;
-  }
-
-  /**
-   * @desc only DBS.
-   * dataContainer과 연관이 있는 place Node List를 세팅함.
-   * @param {placeInfo[]} placeList
-   */
-  bindingPlaceList(placeList) {
-    dcmManager.bindingPlaceList(placeList);
   }
 
   /**
