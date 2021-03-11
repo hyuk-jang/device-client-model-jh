@@ -48,7 +48,9 @@ class DataStorage {
   setDevice(deviceConfigInfo, setDeviceKeyInfo) {
     // BU.CLIS(deviceConfigInfo, setDeviceKeyInfo);
     if (Array.isArray(deviceConfigInfo)) {
-      deviceConfigInfo.forEach(currentItem => this.setDevice(currentItem, setDeviceKeyInfo));
+      deviceConfigInfo.forEach(currentItem =>
+        this.setDevice(currentItem, setDeviceKeyInfo),
+      );
     }
     const { deviceCategoryKey, idKey } = setDeviceKeyInfo;
 
@@ -244,7 +246,10 @@ class DataStorage {
 
       if (this.hasSaveToDB) {
         // BU.CLI(dataStorageContainer);
-        const { dataTableInfo, troubleTableInfo } = dataStorageContainer.refinedDeviceDataConfig;
+        const {
+          dataTableInfo,
+          troubleTableInfo,
+        } = dataStorageContainer.refinedDeviceDataConfig;
 
         // 입력할 Data와 저장할 DB Table이 있을 경우
         if (dataStorageContainer.insertDataList.length && dataTableInfo.tableName) {
@@ -311,30 +316,26 @@ class DataStorage {
     // BU.CLIN(this.refinedDeviceDataConfigList);
     // BU.CLIN(this.dataStorageContainerList);
     // BU.CLI(deviceId, deviceCategory);
-    try {
-      if (deviceCategory.length) {
-        const storageData = this.getDataStorageContainer(deviceCategory);
-        return storageData
-          ? _.find(storageData.storage, {
-              id: deviceId,
-            })
-          : {};
-      }
-      let foundIt = {};
-      _.find(this.dataStorageContainerList, deviceDataStorage => {
-        const foundStorage = _.find(deviceDataStorage.storage, {
-          id: deviceId,
-        });
-        if (_.isEmpty(foundStorage)) {
-          return false;
-        }
-        foundIt = foundStorage;
-        return true;
-      });
-      return foundIt;
-    } catch (error) {
-      throw error;
+    if (deviceCategory.length) {
+      const storageData = this.getDataStorageContainer(deviceCategory);
+      return storageData
+        ? _.find(storageData.storage, {
+            id: deviceId,
+          })
+        : {};
     }
+    let foundIt = {};
+    _.find(this.dataStorageContainerList, deviceDataStorage => {
+      const foundStorage = _.find(deviceDataStorage.storage, {
+        id: deviceId,
+      });
+      if (_.isEmpty(foundStorage)) {
+        return false;
+      }
+      foundIt = foundStorage;
+      return true;
+    });
+    return foundIt;
   }
 
   /**
@@ -344,31 +345,34 @@ class DataStorage {
    * @param {string} deviceCategory 장치 Type 'inverter', 'connector'
    */
   updateDataStorage(deviceOperationInfo, deviceCategory) {
-    try {
-      const { id, config, data, measureDate, systemErrorList, troubleList } = deviceOperationInfo;
-      const dataStorage = this.getDataStorage(id, deviceCategory);
-      if (_.isEmpty(dataStorage)) {
-        throw Error(`fn(onDeviceData) The device is of the wrong id. [${id}]`);
-      }
-      // 주소 참조 데이터의 고리를 끊고 사본을 저장
-      // 상수
-      dataStorage.id = id;
-      dataStorage.measureDate = measureDate;
-      // 상수는 아니나 설정은 변하지 않음.
-      dataStorage.config = config;
-
-      dataStorage.data = Array.isArray(data) ? _.cloneDeep(data) : _.clone(data);
-
-      dataStorage.systemErrorList = _.cloneDeep(systemErrorList);
-
-      dataStorage.troubleList = _.cloneDeep(troubleList);
-
-      dataStorage.convertedDataList = [];
-
-      return dataStorage;
-    } catch (error) {
-      throw error;
+    const {
+      id,
+      config,
+      data,
+      measureDate,
+      systemErrorList,
+      troubleList,
+    } = deviceOperationInfo;
+    const dataStorage = this.getDataStorage(id, deviceCategory);
+    if (_.isEmpty(dataStorage)) {
+      throw Error(`fn(onDeviceData) The device is of the wrong id. [${id}]`);
     }
+    // 주소 참조 데이터의 고리를 끊고 사본을 저장
+    // 상수
+    dataStorage.id = id;
+    dataStorage.measureDate = measureDate;
+    // 상수는 아니나 설정은 변하지 않음.
+    dataStorage.config = config;
+
+    dataStorage.data = Array.isArray(data) ? _.cloneDeep(data) : _.clone(data);
+
+    dataStorage.systemErrorList = _.cloneDeep(systemErrorList);
+
+    dataStorage.troubleList = _.cloneDeep(troubleList);
+
+    dataStorage.convertedDataList = [];
+
+    return dataStorage;
   }
 
   /**
@@ -416,7 +420,8 @@ class DataStorage {
           const everyMatching = _.every(
             troubleTableInfo.addParamList,
             troubleParamInfo =>
-              dbTrouble[troubleParamInfo.toKey] === dataStorage.config[troubleParamInfo.fromKey],
+              dbTrouble[troubleParamInfo.toKey] ===
+              dataStorage.config[troubleParamInfo.fromKey],
           );
           if (everyMatching) {
             hasExitError = true;
@@ -430,7 +435,13 @@ class DataStorage {
       // 신규 에러라면 insertList에 추가
       if (!hasExitError) {
         const { changeColumnKeyInfo } = troubleTableInfo;
-        const { codeKey, fixDateKey, isErrorKey, msgKey, occurDateKey } = changeColumnKeyInfo;
+        const {
+          codeKey,
+          fixDateKey,
+          isErrorKey,
+          msgKey,
+          occurDateKey,
+        } = changeColumnKeyInfo;
         let addErrorObj = {
           [isErrorKey]: isSystemError,
           [codeKey]: deviceError.code,
@@ -494,19 +505,17 @@ class DataStorage {
     if (_.isArray(data)) {
       const convertDataList = [];
       data.forEach(deviceData => {
-        if (
-          !_(deviceData)
-            .values()
-            .without(null)
-            .value().length
-        ) {
+        if (!_(deviceData).values().without(null).value().length) {
           return false;
         }
 
         const convertData = {};
         // 계산식 반영
         matchingList.forEach(matchingObj => {
-          convertData[matchingObj.toKey] = this.calculateMatchingData(deviceData, matchingObj);
+          convertData[matchingObj.toKey] = this.calculateMatchingData(
+            deviceData,
+            matchingObj,
+          );
         });
 
         addParamList.forEach(addParam => {
@@ -519,12 +528,7 @@ class DataStorage {
       return convertDataList;
     }
     if (_.isObject(data)) {
-      if (
-        !_(data)
-          .values()
-          .without(null)
-          .value().length
-      ) {
+      if (!_(data).values().without(null).value().length) {
         return [];
       }
       const convertData = {};
@@ -554,48 +558,44 @@ class DataStorage {
     // BU.CLIS(deviceData, refinedMatchingInfo);
     // BU.CLI('calculateMatchingData', matchingBindingObj, deviceData);
     let resultCalculate = 0;
-    try {
-      const { fromKey, toFixed, calculate } = refinedMatchingInfo;
-      const reg = /[a-zA-Z]/;
-      // 계산식이 숫자일 경우는 eval 하지 않음
-      if (_.isNumber(calculate)) {
-        let data = deviceData[fromKey];
-        data = typeof data === 'string' ? Number(data) : data;
-        // 숫자가 아니거나 null일 경우 throw 반환
-        if (_.isNumber(data)) {
-          resultCalculate = Number((deviceData[fromKey] * calculate).toFixed(toFixed));
-          // BU.CLI('resultCalculate', resultCalculate);
-        } else {
-          resultCalculate = deviceData[fromKey];
-          // throw Error(`해당 데이터는 숫자가 아님: ${deviceData[fromKey]}`);
-        }
-      } else if (typeof calculate === 'string') {
-        // 계산식이 문자일 경우 eval 계산식 생성
-        let finalMsg = '';
-        let tempBuffer = '';
-        for (let i = 0; i < calculate.length; i += 1) {
-          const thisChar = calculate.charAt(i);
-          if (reg.test(thisChar)) {
-            tempBuffer += thisChar;
-          } else {
-            if (tempBuffer !== '') {
-              finalMsg += `deviceData['${tempBuffer}']`;
-              tempBuffer = '';
-            }
-            finalMsg += thisChar;
-          }
-          if (calculate.length === i + 1 && tempBuffer !== '') {
-            finalMsg += `deviceData['${tempBuffer}']`;
-          }
-        }
-        resultCalculate = Number(Number(eval(finalMsg)).toFixed(toFixed));
-        resultCalculate = _.isNaN(resultCalculate) ? 0 : resultCalculate;
+    const { fromKey, toFixed, calculate } = refinedMatchingInfo;
+    const reg = /[a-zA-Z]/;
+    // 계산식이 숫자일 경우는 eval 하지 않음
+    if (_.isNumber(calculate)) {
+      let data = deviceData[fromKey];
+      data = typeof data === 'string' ? Number(data) : data;
+      // 숫자가 아니거나 null일 경우 throw 반환
+      if (_.isNumber(data)) {
+        resultCalculate = Number((deviceData[fromKey] * calculate).toFixed(toFixed));
+        // BU.CLI('resultCalculate', resultCalculate);
       } else {
-        // BU.CLI('deviceData[fromKey]', deviceData[fromKey]);
         resultCalculate = deviceData[fromKey];
+        // throw Error(`해당 데이터는 숫자가 아님: ${deviceData[fromKey]}`);
       }
-    } catch (error) {
-      throw error;
+    } else if (typeof calculate === 'string') {
+      // 계산식이 문자일 경우 eval 계산식 생성
+      let finalMsg = '';
+      let tempBuffer = '';
+      for (let i = 0; i < calculate.length; i += 1) {
+        const thisChar = calculate.charAt(i);
+        if (reg.test(thisChar)) {
+          tempBuffer += thisChar;
+        } else {
+          if (tempBuffer !== '') {
+            finalMsg += `deviceData['${tempBuffer}']`;
+            tempBuffer = '';
+          }
+          finalMsg += thisChar;
+        }
+        if (calculate.length === i + 1 && tempBuffer !== '') {
+          finalMsg += `deviceData['${tempBuffer}']`;
+        }
+      }
+      resultCalculate = Number(Number(eval(finalMsg)).toFixed(toFixed));
+      resultCalculate = _.isNaN(resultCalculate) ? 0 : resultCalculate;
+    } else {
+      // BU.CLI('deviceData[fromKey]', deviceData[fromKey]);
+      resultCalculate = deviceData[fromKey];
     }
 
     // BU.CLI(resultCalculate);
@@ -622,9 +622,7 @@ class DataStorage {
       SELECT o.*
         FROM ${tableName} o                    
           LEFT JOIN ${tableName} b             
-              ON o.${changeColumnKeyInfo.codeKey} = b.${
-      changeColumnKeyInfo.codeKey
-    } AND o.${primaryKey} < b.${primaryKey}
+              ON o.${changeColumnKeyInfo.codeKey} = b.${changeColumnKeyInfo.codeKey} AND o.${primaryKey} < b.${primaryKey}
               `;
     if (foreignKey) {
       sql += ` AND  o.${foreignKey} = b.${foreignKey} `;
